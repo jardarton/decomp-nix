@@ -1,0 +1,16 @@
+diff --git a/diff.py b/diff.py
+index 8216acf..18b3d0a 100755
+--- a/diff.py
++++ b/diff.py
+@@ -64,7 +64,10 @@ def main_early() -> None:
+     try:
+         import diff_settings
+     except ModuleNotFoundError:
+-        fail("Unable to find diff_settings.py in the same directory.")
++        if {"-h", "--help"}.intersection(sys.argv[1:]):
++            diff_settings = None
++        else:
++            fail("Unable to find diff_settings.py in the same directory.")
+     sys.path.pop(0)
+
+     try:

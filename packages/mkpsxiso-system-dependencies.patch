@@ -1,0 +1,66 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index d071274..80db268 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -28,12 +27,0 @@
+-if(NOT EXISTS ${PROJECT_SOURCE_DIR}/tinyxml2/tinyxml2.cpp)
+-	message(FATAL_ERROR "The tinyxml2 directory is empty. Run 'git submodule update --init --recursive' to populate it.")
+-endif()
+-
+-if(NOT EXISTS ${PROJECT_SOURCE_DIR}/miniaudio/miniaudio.h)
+-	message(FATAL_ERROR "The miniaudio directory is empty. Run 'git submodule update --init --recursive' to populate it.")
+-endif()
+-
+-if(NOT EXISTS ${PROJECT_SOURCE_DIR}/ghc/include/ghc/filesystem.hpp)
+-	message(FATAL_ERROR "The ghc directory is empty. Run 'git submodule update --init --recursive' to populate it.")
+-endif()
+-
+@@ -44,30 +32,5 @@
+-# Build tinyxml2
+-set(tinyxml2_BUILD_TESTING OFF CACHE INTERNAL "")
+-add_subdirectory(tinyxml2 EXCLUDE_FROM_ALL)
+-
+-# Build libFLAC, unless explicitly requested not too
+-if(NOT MKPSXISO_NO_LIBFLAC)
+-	if(NOT EXISTS ${PROJECT_SOURCE_DIR}/flac/include/FLAC/stream_encoder.h)
+-		message(FATAL_ERROR "The flac directory is empty. Run 'git submodule update --init --recursive' to populate it.")
+-	endif()
+-
+-	set(BUILD_CXXLIBS OFF CACHE INTERNAL "")
+-	set(BUILD_PROGRAMS OFF CACHE INTERNAL "")
+-	set(BUILD_EXAMPLES OFF CACHE INTERNAL "")
+-	set(BUILD_DOCS OFF CACHE INTERNAL "")
+-	set(BUILD_TESTING OFF CACHE INTERNAL "")
+-	set(INSTALL_MANPAGES OFF CACHE INTERNAL "")
+-	set(INSTALL_PKGCONFIG_MODULES OFF CACHE INTERNAL "")
+-	set(INSTALL_CMAKE_CONFIG_MODULE OFF CACHE INTERNAL "")
+-	set(WITH_OGG OFF CACHE INTERNAL "")
+-	if(MINGW)
+-		set(WITH_STACK_PROTECTOR, OFF CACHE INTERNAL "")
+-	endif()
+-	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+-		set(WITH_FORTIFY_SOURCE OFF CACHE INTERNAL "")
+-	endif()
+-	add_subdirectory(flac EXCLUDE_FROM_ALL)
+-endif()
+-
+-# Add ghc to support filesystem on MacOS
+-add_subdirectory(ghc EXCLUDE_FROM_ALL)
++find_package(ghc_filesystem CONFIG REQUIRED)
++find_package(PkgConfig REQUIRED)
++find_package(tinyxml2 CONFIG REQUIRED)
++pkg_check_modules(FLAC REQUIRED IMPORTED_TARGET flac)
++find_path(MINIAUDIO_INCLUDE_DIR miniaudio.h PATH_SUFFIXES miniaudio REQUIRED)
+@@ -85 +48 @@
+-target_link_libraries(iso_shared ghc_filesystem tinyxml2)
++target_link_libraries(iso_shared ghcFilesystem::ghc_filesystem tinyxml2::tinyxml2)
+@@ -97 +60 @@
+-target_include_directories(mkpsxiso PUBLIC "miniaudio" "threadpool")
++target_include_directories(mkpsxiso PUBLIC ${MINIAUDIO_INCLUDE_DIR} "threadpool")
+@@ -110,5 +73 @@
+-if(NOT MKPSXISO_NO_LIBFLAC)
+-	target_link_libraries(dumpsxiso FLAC)
+-else()
+-	target_compile_definitions(dumpsxiso PUBLIC MKPSXISO_NO_LIBFLAC)
+-endif()
++target_link_libraries(dumpsxiso PkgConfig::FLAC)
