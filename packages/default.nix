@@ -2,6 +2,14 @@
 
 let
   spimdisasm = pkgs.callPackage ./spimdisasm.pkg.nix { };
+  rabbitizer = spimdisasm.passthru.rabbitizer;
+  splat64 = pkgs.callPackage ./splat64.pkg.nix { inherit spimdisasm; };
+  splat = splat64;
+  decompPythonEnv = pkgs.python312.withPackages (_: [
+    rabbitizer
+    spimdisasm
+    (pkgs.python312Packages.toPythonModule splat)
+  ]);
 in
 rec {
   asm-differ = pkgs.callPackage ./asm-differ.pkg.nix { };
@@ -12,10 +20,12 @@ rec {
   mkpsxiso = pkgs.callPackage ./mkpsxiso.pkg.nix { };
   pcsx-redux = pkgs.callPackage ./pcsx-redux.pkg.nix { };
   psyq-obj-parser = pkgs.callPackage ./psyq-obj-parser.pkg.nix { };
-  rabbitizer = spimdisasm.passthru.rabbitizer;
-  inherit spimdisasm;
-  splat64 = pkgs.callPackage ./splat64.pkg.nix { inherit spimdisasm; };
-  splat = splat64;
+  inherit
+    rabbitizer
+    spimdisasm
+    splat
+    splat64
+    ;
 
   ps1-decomp-tools = pkgs.buildEnv {
     name = "ps1-decomp-tools";
@@ -28,8 +38,7 @@ rec {
       mkpsxiso
       pcsx-redux
       psyq-obj-parser
-      spimdisasm
-      splat
+      decompPythonEnv
     ];
   };
 
