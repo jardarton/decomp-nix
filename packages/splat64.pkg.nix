@@ -77,27 +77,30 @@ let
 
   intervaltree = py.buildPythonPackage rec {
     pname = "intervaltree";
-    version = "3.1.0";
+    version = "3.2.1";
     pyproject = true;
 
     src = fetchPypi {
       inherit pname version;
-      hash = "sha256-kCsbiJNpGPmyoZ4OXrfMtDCuRc3k856ks2kykg0zlS0=";
+      hash = "sha256-8/fouut911ufem0zzz7BACWYSo5m4wFtU35SEwxzz+I=";
     };
 
-    build-system = [ py.setuptools ];
+    build-system = [
+      py.hatchling
+      py.uv-dynamic-versioning
+    ];
     dependencies = [ py.sortedcontainers ];
     pythonImportsCheck = [ "intervaltree" ];
   };
 
   tqdm = py.buildPythonPackage rec {
     pname = "tqdm";
-    version = "4.67.1";
+    version = "4.70.1";
     pyproject = true;
 
     src = fetchPypi {
       inherit pname version;
-      hash = "sha256-+K75xSwIwTpl8w6jT05arD/Ro0lZh51+WeYwJyhmJ/I=";
+      hash = "sha256-zv0OyhGyo3o67ndlRNT0rpE/AmiBNbVVa4eI36R0r8Q=";
     };
 
     build-system = [ py.setuptools-scm ];
@@ -113,6 +116,12 @@ py.buildPythonApplication rec {
     inherit pname version;
     hash = "sha256-9TvDo/7NG3oBNnUJvs51ScWOjLmEmASr2eDzD34Vywo=";
   };
+
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail 'intervaltree==3.1.0' 'intervaltree>=3.1.0,<4' \
+      --replace-fail 'tqdm==4.67.1' 'tqdm>=4.67.1,<5'
+  '';
 
   build-system = [ py.hatchling ];
 
