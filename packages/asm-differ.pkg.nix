@@ -5,14 +5,14 @@
 }:
 python312Packages.buildPythonApplication rec {
   pname = "asm-differ";
-  version = "0.1.0-unstable-2026-07-21";
+  version = "0.1.0-unstable-2026-09-06";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "simonlindholm";
     repo = "asm-differ";
-    rev = "6299ebf95dd54e572f71b87a34cac37bc85b7870";
-    hash = "sha256-wxGQgyTGZ+Vn20ALGmec/kRcAPX5HjBdRJ3sof6VQPI=";
+    rev = "0dd09af8f8008f1f880327cf0aca3b26d2562ea2";
+    hash = "sha256-CnEwuJuHNRAcE200nLJXulLUqYtnq+htH9iSzsHRgAI=";
   };
 
   patches = [ ./asm-differ-help-without-config.patch ];
