@@ -11,13 +11,13 @@
 }:
 stdenv.mkDerivation {
   pname = "psyq-obj-parser";
-  version = "unstable-2026-08-09";
+  version = "unstable-2026-09-27";
 
   src = fetchFromGitHub {
     owner = "grumpycoders";
     repo = "pcsx-redux";
-    rev = "9a1c92a894a3c6bf9a1b681548161b49f384d872";
-    hash = "sha256-CBns5H3Q7uZYHC6gD8Oq6c9Woix1HhNiz9OXDYVZXAM=";
+    rev = "264f2a6865466fd0846ab12808d0260fe012d35a";
+    hash = "sha256-XeBJVeTBLKC1pzUGXHoKinbm4rAPRpNd3GKOS23mPqE=";
   };
 
   buildInputs = [
