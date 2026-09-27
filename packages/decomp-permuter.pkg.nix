@@ -19,13 +19,13 @@ let
 in
 stdenvNoCC.mkDerivation {
   pname = "decomp-permuter";
-  version = "unstable-2026-08-05";
+  version = "unstable-2026-09-07";
 
   src = fetchFromGitHub {
     owner = "simonlindholm";
     repo = "decomp-permuter";
-    rev = "2795247304ec4798459b9bc865314e64e5182bf9";
-    hash = "sha256-8HaVCfSLJTUNDoYuwOH8hnAkl4jCkPYFwvDqoz7ERzo=";
+    rev = "059609d4aec73eb0650726772954e1ad575825f8";
+    hash = "sha256-Eed8H2d0lr+nTE3P49fwM6IpyJZjsJrsY4Bzn0t4zy4=";
   };
 
   nativeBuildInputs = [ makeWrapper ];
