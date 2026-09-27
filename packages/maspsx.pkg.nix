@@ -13,13 +13,13 @@ let
 in
 stdenvNoCC.mkDerivation {
   pname = "maspsx";
-  version = "unstable-2026-05-04";
+  version = "unstable-2026-09-23";
 
   src = fetchFromGitHub {
     owner = "mkst";
     repo = "maspsx";
-    rev = "42b862c988fe7a13fe4e7ac0ebec90ed6b9fb763";
-    hash = "sha256-pKFFWBS/OaPk7z4JbjUummlWJ49kRgHS1penf3pemnc=";
+    rev = "7686f845a181700534c83c0419183e38aeb3e49c";
+    hash = "sha256-Q6NDNesXDj79mBeM24h+RhSZQG5fo4JuVPexQVSqnIQ=";
   };
 
   postPatch = ''
@@ -41,7 +41,7 @@ stdenvNoCC.mkDerivation {
     runHook preCheck
 
     python -m unittest --verbose 2>&1 | tee unit-tests.log
-    grep -F "Ran 140 tests" unit-tests.log
+    grep -F "Ran 151 tests" unit-tests.log
     grep -Fx "OK" unit-tests.log
 
     runHook postCheck
