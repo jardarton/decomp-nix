@@ -13,7 +13,7 @@
 }:
 
 let
-  version = "unstable-2026-07-08";
+  version = "unstable-2026-09-03";
 
   psyqSignatures = fetchFromGitHub {
     owner = "lab313ru";
@@ -31,8 +31,8 @@ let
     src = fetchFromGitHub {
       owner = "lab313ru";
       repo = "ghidra_psx_ldr";
-      rev = "85d9efaf5693418979152c2298f776734824035b";
-      hash = "sha256-Ka3jMCX/429VrWFB/VRzMQW1crjTrOWy+m+3ZDFihcA=";
+      rev = "6f6be18615d9b42b1ce07740780623c3cf6cbd2c";
+      hash = "sha256-gTKxn8i143phvNzrRillrRvw49Odlnk+KSWYtjfY9Cw=";
     };
 
     postPatch = ''
