@@ -6,14 +6,14 @@
 }:
 python312Packages.buildPythonApplication rec {
   pname = "m2c";
-  version = "0.1.0-unstable-2026-08-11";
+  version = "0.1.0-unstable-2026-09-16";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "matt-kempster";
     repo = "m2c";
-    rev = "10deabd76346bb59cf02a4e04d02b106dd60cce4";
-    hash = "sha256-c53IesADvwW/wD69zGDCAZPf7Oyne/jXqLypx+UQEyA=";
+    rev = "708d2d2cb2698f091a92492b328f73b24209f72d";
+    hash = "sha256-1CT+8k2ZFvLPYg/BORilS9csNrqbHgYLJ+6p3+OxrpE=";
   };
 
   postPatch = ''
