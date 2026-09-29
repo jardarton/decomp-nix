@@ -4,7 +4,7 @@
   lib,
   makeWrapper,
   pkgsCross,
-  python3Minimal,
+  python3,
   stdenvNoCC,
 }:
 let
@@ -31,7 +31,7 @@ stdenvNoCC.mkDerivation {
   nativeCheckInputs = [
     file
     mipsBinutils
-    python3Minimal
+    python3
   ];
 
   dontBuild = true;
@@ -56,13 +56,13 @@ stdenvNoCC.mkDerivation {
     install -Dm644 maspsx.py "$appDir/maspsx.py"
     install -Dm644 maspsx/__init__.py "$moduleDir/__init__.py"
     install -Dm644 LICENSE README.md -t "$appDir"
-    mkdir -p "$out/${python3Minimal.sitePackages}"
-    ln -s "$moduleDir" "$out/${python3Minimal.sitePackages}/maspsx"
+    mkdir -p "$out/${python3.sitePackages}"
+    ln -s "$moduleDir" "$out/${python3.sitePackages}/maspsx"
 
-    makeWrapper ${python3Minimal}/bin/python "$out/bin/maspsx" \
+    makeWrapper ${python3}/bin/python "$out/bin/maspsx" \
       --add-flags "$appDir/maspsx.py" \
       --set PYTHONDONTWRITEBYTECODE 1 \
-      --prefix PYTHONPATH : "$out/${python3Minimal.sitePackages}"
+      --prefix PYTHONPATH : "$out/${python3.sitePackages}"
 
     runHook postInstall
   '';
@@ -76,8 +76,8 @@ stdenvNoCC.mkDerivation {
     cd "$TMPDIR"
 
     $out/bin/maspsx --help | grep -F -- "--run-assembler"
-    PYTHONPATH="$out/${python3Minimal.sitePackages}" \
-      ${python3Minimal}/bin/python -c 'from maspsx import MaspsxProcessor'
+    PYTHONPATH="$out/${python3.sitePackages}" \
+      ${python3}/bin/python -c 'from maspsx import MaspsxProcessor'
 
     cat > smoke.s <<'ASM'
     .text
