@@ -50,6 +50,42 @@ packages remain available for projects that need smaller closures.
 Package sources and dependencies are pinned by `flake.lock`. Builds contain
 upstream tests and project-specific smoke tests where practical.
 
+## Authenticated PS1 pins
+
+The overlay and flake package outputs also expose the exact tool derivations
+used by Necrompiler:
+
+| Package | Pin and purpose |
+| --- | --- |
+| `splat-ps1` | Splat64 0.50.0 with eager N64 imports removed for a PS1-only closure |
+| `rabbitizer-ps1` | Rabbitizer 1.16.2 dependency of `splat-ps1` |
+| `spimdisasm-ps1` | spimdisasm 1.42.4 dependency of `splat-ps1` |
+| `pylibyaml-ps1` | pylibyaml 0.1.0 dependency of `splat-ps1` |
+| `m2c-10deabd` | m2c at `10deabd76346bb59cf02a4e04d02b106dd60cce4` |
+| `psyq-cc1-2_8_1-binary` | PsyQ GCC cc1 2.8.1 fetched binary for the MediEvil profile |
+| `psyq-cc1-2_7_2-al1_1-binary` | PsyQ GCC cc1 2.7.2 AL 1.1 fetched binary for the Hercules profiles |
+| `psyq-cc1-2_8_1` | Host command for cc1 2.8.1 |
+| `psyq-cc1-2_7_2-al1_1` | Host command for cc1 2.7.2 AL 1.1 |
+
+These variants intentionally keep the previous Necrompiler derivation
+arguments, including its `python3Packages` interpreter selection. The general
+`splat`/`splat64`, `m2c`, `rabbitizer`, and `spimdisasm` packages retain their
+existing Python 3.12 dependencies, patches, and checks. Even equal upstream
+version numbers do not imply equal derivations. The pinned variants are not
+added to the general development shells or `ps1-decomp-tools` bundle.
+
+Both cc1 binaries are fetched from MediEvilDecompilation/medievil-decomp at
+`6afe6fe35d5ddf0ce1bebdb2e72f8215b5b5b407` with fixed hashes; the SDK binaries
+are not checked into this repository. The command packages alias the binary
+on `x86_64-linux`, use `qemu-i386` from `qemu-user` on `aarch64-linux`, and exit
+126 on other hosts when used through the overlay. Each binary also exposes
+its command package as `.command`. The fetched binary remains separately
+available for executable identity authentication. Consult the upstream SDK
+terms before use or redistribution.
+
+Consumers must follow the same nixpkgs input to preserve exact store paths;
+a source pin alone does not freeze a derivation's interpreter or dependencies.
+
 ## Development shells
 
 | Shell | Contents |
@@ -153,4 +189,5 @@ redistributing its output.
 
 `ghidra-psx` is marked unfree because its extension and signature sources do
 not provide repository-level license grants. This repository does not
-distribute the proprietary PsyQ SDK or Sony disc license data.
+check in proprietary PsyQ SDK or Sony disc license data. The cc1 pin expressions
+fetch SDK executables from the third-party source described above.
