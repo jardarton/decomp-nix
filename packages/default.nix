@@ -31,6 +31,7 @@ rec {
   psyq-cc1-2_7_2-al1_1-binary = pkgs.callPackage ./psyq-cc1-2_7_2-al1_1-binary.pkg.nix { };
   psyq-cc1-2_7_2-al1_1 = psyq-cc1-2_7_2-al1_1-binary.command;
   maspsx = pkgs.callPackage ./maspsx.pkg.nix { };
+  psx-psyq-signatures = pkgs.callPackage ./psx-psyq-signatures.pkg.nix { };
   mkpsxiso = pkgs.callPackage ./mkpsxiso.pkg.nix { };
   pcsx-redux = pkgs.callPackage ./pcsx-redux.pkg.nix { };
   psyq-obj-parser = pkgs.callPackage ./psyq-obj-parser.pkg.nix { };
