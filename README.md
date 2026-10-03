@@ -66,6 +66,7 @@ used by Necrompiler:
 | `psyq-cc1-2_7_2-al1_1-binary` | PsyQ GCC cc1 2.7.2 AL 1.1 fetched binary for the Hercules profiles |
 | `psyq-cc1-2_8_1` | Host command for cc1 2.8.1 |
 | `psyq-cc1-2_7_2-al1_1` | Host command for cc1 2.7.2 AL 1.1 |
+| `psx-psyq-signatures` | `psx_psyq_signatures` at `e9e46e7e133ef275a79bfce650924f98edb086bc`: PsyQ SDK signatures and BIOS call tables |
 
 These variants intentionally keep the previous Necrompiler derivation
 arguments, including its `python3Packages` interpreter selection. The general
