@@ -16,6 +16,20 @@ rec {
   decomp-permuter = pkgs.callPackage ./decomp-permuter.pkg.nix { };
   ghidra-psx = pkgs.callPackage ./ghidra-psx.pkg.nix { };
   m2c = pkgs.callPackage ./m2c.pkg.nix { };
+  # Separate authenticated PS1 pins from the general tool collection.
+  m2c-10deabd = pkgs.callPackage ./m2c-10deabd.pkg.nix { };
+  rabbitizer-ps1 = pkgs.callPackage ./rabbitizer-ps1.pkg.nix { };
+  spimdisasm-ps1 = pkgs.callPackage ./spimdisasm-ps1.pkg.nix { rabbitizer = rabbitizer-ps1; };
+  pylibyaml-ps1 = pkgs.callPackage ./pylibyaml-ps1.pkg.nix { };
+  splat-ps1 = pkgs.callPackage ./splat-ps1.pkg.nix {
+    rabbitizer = rabbitizer-ps1;
+    spimdisasm = spimdisasm-ps1;
+    pylibyaml = pylibyaml-ps1;
+  };
+  psyq-cc1-2_8_1-binary = pkgs.callPackage ./psyq-cc1-2_8_1-binary.pkg.nix { };
+  psyq-cc1-2_8_1 = psyq-cc1-2_8_1-binary.command;
+  psyq-cc1-2_7_2-al1_1-binary = pkgs.callPackage ./psyq-cc1-2_7_2-al1_1-binary.pkg.nix { };
+  psyq-cc1-2_7_2-al1_1 = psyq-cc1-2_7_2-al1_1-binary.command;
   maspsx = pkgs.callPackage ./maspsx.pkg.nix { };
   mkpsxiso = pkgs.callPackage ./mkpsxiso.pkg.nix { };
   pcsx-redux = pkgs.callPackage ./pcsx-redux.pkg.nix { };
