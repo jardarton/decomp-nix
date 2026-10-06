@@ -47,6 +47,31 @@ configuration.
 The `ps1-decomp-tools` package combines the complete PS1 toolset. Individual
 packages remain available for projects that need smaller closures.
 
+### maspsx runs on MicroPython
+
+maspsx runs once per compiled C file, and most of a CPython run is interpreter
+startup: about 90 ms per call, against about 6 ms for the same upstream code
+on MicroPython. `bin/maspsx` therefore runs upstream maspsx on MicroPython,
+with the same command line, output and exit status as the CPython build.
+`bin/maspsx-cpython` is the unmodified CPython build, and the Python module
+remains importable as before.
+
+Upstream's code is not ported. At build time,
+[`rewrite.py`](packages/maspsx-micropython/rewrite.py) makes mechanical
+changes (ordered dictionaries, an exactly rounded `float`, CPython's `re`
+semantics), and [`runtime/`](packages/maspsx-micropython/runtime) supplies the
+few standard library pieces maspsx imports. A run either finishes on
+MicroPython or hands the whole invocation to `maspsx-cpython` before writing
+anything: on non-ASCII input, `--help`, abbreviated options, files of more than
+about 15,000 lines, or any exception. Results are therefore identical, only
+sometimes slower.
+
+The build replays all of upstream's unit tests on MicroPython and compares both
+commands end to end on about 2,800 command lines (all ASPSX versions, `-G`
+values, flags and `--run-assembler`, including object files byte for byte). If
+an upstream update uses something the rewrite cannot translate, the build
+fails instead of changing behaviour.
+
 Package sources and dependencies are pinned by `flake.lock`. Builds contain
 upstream tests and project-specific smoke tests where practical.
 
