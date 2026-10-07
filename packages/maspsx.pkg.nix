@@ -9,28 +9,12 @@
   python3,
   python313,
   stdenvNoCC,
+  writeText,
 }:
 let
   mipsBinutils = pkgsCross.mips-embedded.buildPackages.binutils-unwrapped;
   mipsAssembler = "${mipsBinutils}/bin/${mipsBinutils.targetPrefix}as";
 
-  # mpy-cross is built alongside MicroPython but not installed by nixpkgs.
-  # MicroPython's test suite compares its output with CPython's; CPython 3.14
-  # changed messages several tests expect (the PEP 765 SyntaxWarning, math
-  # domain errors, a complex() DeprecationWarning), so compare with 3.13.
-  micropython' = micropython.overrideAttrs (old: {
-    env = (old.env or { }) // {
-      MICROPY_CPYTHON3 = "${python313}/bin/python3";
-    };
-    postInstall = (old.postInstall or "") + ''
-      install -Dm755 mpy-cross/build/mpy-cross -t "$out/bin"
-    '';
-  });
-
-  micropythonSupport = ./maspsx-micropython;
-in
-stdenvNoCC.mkDerivation {
-  pname = "maspsx";
   version = "unstable-2026-09-23";
 
   src = fetchFromGitHub {
@@ -45,11 +29,55 @@ stdenvNoCC.mkDerivation {
       --replace-fail 'default="mipsel-linux-gnu-as"' 'default="${mipsAssembler}"'
   '';
 
+  micropythonSupport = ./maspsx-micropython;
+
+  # Upstream maspsx translated for MicroPython, plus the standard library
+  # pieces it imports; see maspsx-micropython/rewrite.py and
+  # runtime/maspsx_main.py.
+  micropythonSources = stdenvNoCC.mkDerivation {
+    pname = "maspsx-micropython-sources";
+    inherit version src postPatch;
+    nativeBuildInputs = [ python3 ];
+    buildPhase = ''
+      runHook preBuild
+      mkdir -p micropython/maspsx
+      python3 ${micropythonSupport}/rewrite.py \
+        maspsx/__init__.py micropython/maspsx/__init__.py \
+        maspsx.py micropython/maspsx_cli.py
+      cp ${micropythonSupport}/runtime/*.py micropython/
+      runHook postBuild
+    '';
+    installPhase = ''
+      cp -r micropython "$out"
+    '';
+  };
+
+  # A MicroPython with those modules frozen into the binary. Loading them as
+  # .mpy files took about 3.7 ms of a 6.7 ms run; frozen modules are mapped
+  # with the executable. The interpreter's own frozen modules (asyncio, mip
+  # and the micropython-lib argparse, which would clash with the runtime's)
+  # are left out: it only runs maspsx.
+  #
+  # MicroPython's test suite compares its output with CPython's; CPython 3.14
+  # changed messages several tests expect (the PEP 765 SyntaxWarning, math
+  # domain errors, a complex() DeprecationWarning), so compare with 3.13.
+  micropython' = micropython.overrideAttrs (old: {
+    pname = "micropython-maspsx";
+    env = (old.env or { }) // {
+      MICROPY_CPYTHON3 = "${python313}/bin/python3";
+    };
+    makeFlags = (old.makeFlags or [ ]) ++ [
+      "FROZEN_MANIFEST=${writeText "maspsx-manifest.py" ''freeze("${micropythonSources}")''}"
+    ];
+  });
+in
+stdenvNoCC.mkDerivation {
+  pname = "maspsx";
+  inherit version src postPatch;
+
   nativeBuildInputs = [
     makeBinaryWrapper
     makeWrapper
-    micropython'
-    python3
   ];
   nativeCheckInputs = [
     file
@@ -57,27 +85,7 @@ stdenvNoCC.mkDerivation {
     python3
   ];
 
-  # Translate upstream maspsx for MicroPython and compile it to bytecode; see
-  # maspsx-micropython/rewrite.py and runtime/maspsx_main.py.
-  buildPhase = ''
-    runHook preBuild
-
-    mkdir -p micropython/maspsx micropython-bytecode/maspsx
-    python3 ${micropythonSupport}/rewrite.py \
-      maspsx/__init__.py micropython/maspsx/__init__.py \
-      maspsx.py micropython/maspsx_cli.py
-    cp ${micropythonSupport}/runtime/*.py micropython/
-    substituteInPlace micropython/maspsx_main.py \
-      --replace-fail '@cpython_maspsx@' "$out/bin/maspsx-cpython"
-    (
-      cd micropython
-      for source in *.py maspsx/__init__.py; do
-        mpy-cross -o "../micropython-bytecode/''${source%.py}.mpy" "$source"
-      done
-    )
-
-    runHook postBuild
-  '';
+  dontBuild = true;
 
   doCheck = true;
   checkPhase = ''
@@ -91,7 +99,7 @@ stdenvNoCC.mkDerivation {
     # and decimal strings for the float parser, on MicroPython.
     PYTHONPATH=. PYTHONDONTWRITEBYTECODE=1 python3 ${micropythonSupport}/tests/record.py \
       "$TMPDIR/processors.json" "$TMPDIR/regexes.json" "$TMPDIR/floats.json"
-    MICROPYPATH="$PWD/micropython-bytecode" micropython -X heapsize=16M \
+    MICROPYPATH=.frozen ${micropython'}/bin/micropython -X heapsize=16M \
       ${micropythonSupport}/tests/replay.py \
       "$TMPDIR/processors.json" "$TMPDIR/regexes.json" "$TMPDIR/floats.json"
 
@@ -116,10 +124,11 @@ stdenvNoCC.mkDerivation {
       --prefix PYTHONPATH : "$out/${python3.sitePackages}"
 
     # A 16 MiB heap holds inputs of about 15,000 lines; larger ones run out of
-    # memory and fall back to CPython.
-    cp -r micropython-bytecode "$appDir/micropython"
+    # memory and fall back to CPython. MICROPYPATH keeps user library
+    # directories off the module path.
     makeBinaryWrapper ${micropython'}/bin/micropython "$out/bin/maspsx" \
-      --set MICROPYPATH "$appDir/micropython" \
+      --set MICROPYPATH .frozen \
+      --set MASPSX_CPYTHON "$out/bin/maspsx-cpython" \
       --add-flags "-X heapsize=16M -m maspsx_main"
 
     runHook postInstall
@@ -176,6 +185,11 @@ stdenvNoCC.mkDerivation {
 
     runHook postInstallCheck
   '';
+
+  passthru = {
+    inherit micropythonSources;
+    micropython = micropython';
+  };
 
   meta = {
     description = "Modern replacement for the PsyQ ASPSX assembly preprocessor";

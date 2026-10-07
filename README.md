@@ -50,9 +50,11 @@ packages remain available for projects that need smaller closures.
 ### maspsx runs on MicroPython
 
 maspsx runs once per compiled C file, and most of a CPython run is interpreter
-startup: about 90 ms per call, against about 6 ms for the same upstream code
+startup: about 90 ms per call, against about 4 ms for the same upstream code
 on MicroPython. `bin/maspsx` therefore runs upstream maspsx on MicroPython,
-with the same command line, output and exit status as the CPython build.
+with the same command line, output and exit status as the CPython build. Its
+modules are frozen into a MicroPython binary built for it, which saves loading
+them on every call (6.3 to 4.2 ms on a typical function).
 `bin/maspsx-cpython` is the unmodified CPython build, and the Python module
 remains importable as before.
 
