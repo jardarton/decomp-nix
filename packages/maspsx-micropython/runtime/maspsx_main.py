@@ -6,12 +6,14 @@
 # than SystemExit, including MemoryError and the deliberate refusals in the
 # compatibility modules, and on input that is not plain ASCII.
 #
-# Setting MASPSX_MICROPYTHON_NO_FALLBACK makes a hand-off exit with status 125
-# instead; the package tests use it to prove that runs take the fast path.
+# The CPython build is named by MASPSX_CPYTHON, which bin/maspsx sets: these
+# modules are frozen into an interpreter that is built before the package and
+# cannot refer to it. Setting MASPSX_MICROPYTHON_NO_FALLBACK makes a hand-off
+# exit with status 125 instead; the package tests use it to prove that runs
+# take the fast path.
 
 import sys
 
-CPYTHON_MASPSX = "@cpython_maspsx@"
 NO_FALLBACK_STATUS = 125
 
 
@@ -147,7 +149,8 @@ def _run(proxy):
 def _fallback(proxy, reason):
     import os
 
-    if os.getenv("MASPSX_MICROPYTHON_NO_FALLBACK"):
+    cpython = os.getenv("MASPSX_CPYTHON")
+    if os.getenv("MASPSX_MICROPYTHON_NO_FALLBACK") or not cpython:
         sys.stderr.write("maspsx: MicroPython fallback: %r\n" % (reason,))
         sys.exit(NO_FALLBACK_STATUS)
 
@@ -156,9 +159,7 @@ def _fallback(proxy, reason):
     stdin_path = None
     if proxy.stdin.data is not None:
         stdin_path = _mplibc.temporary_file(proxy.stdin.data)
-    _mplibc.exec_with_stdin(
-        CPYTHON_MASPSX, [CPYTHON_MASPSX] + sys.argv[1:], stdin_path
-    )
+    _mplibc.exec_with_stdin(cpython, [cpython] + sys.argv[1:], stdin_path)
 
 
 def main():
