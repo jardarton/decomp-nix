@@ -1,0 +1,186 @@
+diff --git a/maspsx/__init__.py b/maspsx/__init__.py
+index b75f6fc..e15abbe 100644
+--- a/maspsx/__init__.py
++++ b/maspsx/__init__.py
+@@ -473,6 +473,7 @@ class MaspsxProcessor:
+ 
+         self.nop_at_expansion = nop_at_expansion
+         self.nop_mflo_mfhi = nop_mflo_mfhi
++        self.mflo_load_hazard = False
+         self.nop_lw_lw = nop_lw_lw
+ 
+         self.sltu_at = sltu_at
+@@ -747,6 +748,28 @@ class MaspsxProcessor:
+ 
+         return res
+ 
++    def _pad_mflo_load(self, emitted: List[str]) -> List[str]:
++        # medievil patch: an mflo/mfhi, one load, then mult/div/rem. A load
++        # that the assembler keeps as one instruction (register base,
++        # %lo(), %gp_rel()) leaves the mult/div only two instructions after
++        # the mflo/mfhi, so retail ASPSX adds a nop after it, unless the
++        # load-delay check already did.
++        real = [
++            x
++            for x in emitted
++            if x.strip()
++            and not x.lstrip().startswith("#")
++            and not x.lstrip().startswith(".")
++        ]
++        if len(real) != 1:
++            # expanded through $at (or already padded)
++            return []
++        load = strip_comments(real[0]).strip()
++        if "(" not in load:
++            # a bare symbol: the assembler expands it to lui + load
++            return []
++        return ["nop  # DEBUG: mflo/mfhi with mult/div/rem and 1 load"]
++
+     def _handle_mflo_mfhi(self, r_source=None) -> List[str]:
+         # we cannot use a div/mult within 2 instructions of mflo/mfhi
+         res: List[str] = []
+@@ -808,7 +831,10 @@ class MaspsxProcessor:
+                 if inst == next_instruction:
+                     op, *_ = inst.strip().split()
+                     if op in load_mnemonics:
+-                        # allow for $at handling later in the script
++                        # allow for $at handling later in the script; if the
++                        # load stays a single instruction it must still be
++                        # followed by a nop (medievil patch)
++                        self.mflo_load_hazard = True
+                         skip = 0
+                         break
+ 
+@@ -863,7 +889,10 @@ class MaspsxProcessor:
+                                     ]
+                                 )
+                             else:
+-                                if op in branch_mnemonics:
++                                if op in branch_mnemonics or op == "j":
++                                    # medievil patch: an unconditional `j`
++                                    # takes its nop before a following label,
++                                    # like a conditional branch
+                                     res.extend(
+                                         [
+                                             inst,
+@@ -970,6 +999,10 @@ class MaspsxProcessor:
+         op, *rest = line.split()
+ 
+         if op in load_mnemonics:
++            mflo_load_hazard = self.mflo_load_hazard
++            self.mflo_load_hazard = False
++            res_start = len(res)
++
+             r_source, r_dest, operand, is_addend, needs_expanding = parse_load_or_store(
+                 " ".join(rest)
+             )
+@@ -1072,6 +1105,9 @@ class MaspsxProcessor:
+                 )
+                 res.extend(extra_nops)
+ 
++            if mflo_load_hazard:
++                res.extend(self._pad_mflo_load(res[res_start:]))
++
+         elif op in store_mnemonics or (op == "la" and self.sdata_limit > 0):
+             r_source, r_dest, operand, is_addend, _ = parse_load_or_store(
+                 " ".join(rest)
+diff --git a/tests/test_mflo.py b/tests/test_mflo.py
+index 287b06b..9e7ef3f 100644
+--- a/tests/test_mflo.py
++++ b/tests/test_mflo.py
+@@ -307,3 +307,95 @@ class TestMflo(unittest.TestCase):
+ 
+         clean_lines = strip_comments(res)
+         self.assertEqual(expected_lines, clean_lines)
++
++
++class TestMfloMedievilPatch(unittest.TestCase):
++    """Local patch for MediEvil (decomp-nix); not upstream maspsx."""
++
++    def test_mflo_jump_before_label(self):
++        # main:func_8003B5A8: the nop goes in the j delay slot, before the
++        # labels that a branch elsewhere targets
++        lines = [
++            "	mflo	$4",
++            "	j	$L28",
++            "$L29:",
++            "$L36:",
++            "	mult	$4,$2",
++        ]
++        expected_lines = [
++            "mflo\t$4",
++            "j\t$L28",
++            "nop",
++            "$L29:",
++            "$L36:",
++            "mult\t$4,$2",
++        ]
++        mp = MaspsxProcessor(lines)
++        res = mp.process_lines()
++        self.assertEqual(expected_lines, strip_comments(res))
++
++    def test_mflo_gp_load_before_mult(self):
++        # main:func_80041B5C: mflo; lw (gp-relative); nop; div
++        lines = [
++            "	.comm	D_800EDB3C,4",
++            "	mflo	$18",
++            "	lw	$4,D_800EDB3C",
++            "	mult	$3,$2",
++        ]
++        expected_lines = [
++            "mflo\t$18",
++            "lw\t$4,%gp_rel(D_800EDB3C)($gp)",
++            "nop",
++            "mult\t$3,$2",
++        ]
++        mp = MaspsxProcessor(lines, sdata_limit=8)
++        res = mp.process_lines()
++        self.assertEqual(expected_lines, strip_comments(res)[:4])
++
++    def test_mflo_register_load_before_mult(self):
++        lines = [
++            "	mflo	$18",
++            "	lw	$4,8($5)",
++            "	mult	$3,$2",
++        ]
++        expected_lines = [
++            "mflo\t$18",
++            "lw\t$4,8($5)",
++            "nop",
++            "mult\t$3,$2",
++        ]
++        mp = MaspsxProcessor(lines)
++        res = mp.process_lines()
++        self.assertEqual(expected_lines, strip_comments(res))
++
++    def test_mflo_load_delay_nop_not_doubled(self):
++        lines = [
++            "	mflo	$18",
++            "	lw	$2,8($5)",
++            "	mult	$3,$2",
++        ]
++        expected_lines = [
++            "mflo\t$18",
++            "lw\t$2,8($5)",
++            "nop",
++            "mult\t$3,$2",
++        ]
++        mp = MaspsxProcessor(lines)
++        res = mp.process_lines()
++        self.assertEqual(expected_lines, strip_comments(res))
++
++    def test_mflo_symbol_load_needs_no_nop(self):
++        # lui + lw already separate the mflo from the mult
++        lines = [
++            "	mflo	$18",
++            "	lw	$4,D_80001000",
++            "	mult	$3,$2",
++        ]
++        expected_lines = [
++            "mflo\t$18",
++            "lw\t$4,D_80001000",
++            "mult\t$3,$2",
++        ]
++        mp = MaspsxProcessor(lines)
++        res = mp.process_lines()
++        self.assertEqual(expected_lines, strip_comments(res))

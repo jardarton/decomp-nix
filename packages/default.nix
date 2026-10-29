@@ -31,6 +31,14 @@ rec {
   psyq-cc1-2_7_2-al1_1-binary = pkgs.callPackage ./psyq-cc1-2_7_2-al1_1-binary.pkg.nix { };
   psyq-cc1-2_7_2-al1_1 = psyq-cc1-2_7_2-al1_1-binary.command;
   maspsx = pkgs.callPackage ./maspsx.pkg.nix { };
+  # Not upstream maspsx: our local hazard-nop patch for the MediEvil
+  # decompilation (README.md, "maspsx-medievil is a local patch").
+  maspsx-medievil = pkgs.callPackage ./maspsx.pkg.nix {
+    pname = "maspsx-medievil";
+    patches = [ ./maspsx-medievil-hazard-nops.patch ];
+    extraTests = 5;
+    descriptionSuffix = " (local MediEvil hazard-nop patch, not upstream)";
+  };
   psx-psyq-signatures = pkgs.callPackage ./psx-psyq-signatures.pkg.nix { };
   mkpsxiso = pkgs.callPackage ./mkpsxiso.pkg.nix { };
   pcsx-redux = pkgs.callPackage ./pcsx-redux.pkg.nix { };

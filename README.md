@@ -37,6 +37,7 @@ configuration.
 | `ghidra-psx` | Ghidra with a PS-X EXE loader, GTE support, and PsyQ signatures |
 | `m2c` | Converts MIPS and several other assembly languages into approximate C |
 | `maspsx` | Reproduces PsyQ ASPSX preprocessing with a modern assembler |
+| `maspsx-medievil` | `maspsx` with our local MediEvil hazard-nop patch (not upstream; see below) |
 | `mkpsxiso` | Creates and extracts PS1 BIN/CUE images; includes `dumpsxiso` |
 | `pcsx-redux` | PS1 emulator with debugging, tracing, scripting, and OpenBIOS |
 | `psyq-obj-parser` | Converts PsyQ LNK object files into ELF objects |
@@ -46,6 +47,29 @@ configuration.
 
 The `ps1-decomp-tools` package combines the complete PS1 toolset. Individual
 packages remain available for projects that need smaller closures.
+
+### maspsx-medievil is a local patch
+
+`maspsx` is upstream [mkst/maspsx](https://github.com/mkst/maspsx) at the
+pinned commit, unchanged. `maspsx-medievil` is the same build plus a local
+patch,
+[`maspsx-medievil-hazard-nops.patch`](packages/maspsx-medievil-hazard-nops.patch).
+The patch is ours, kept for the MediEvil decompilation, and is not intended
+for or reported upstream. Both changes move a hazard `nop` to where retail
+ASPSX 2.81 puts it, around an `mflo`/`mfhi` followed two instructions later by
+a `mult`/`div`/`rem`:
+
+- a `j` followed by a label takes the `nop` in its delay slot, before the
+  label, as conditional branches already did (MediEvil `func_8003B5A8`);
+- a load that stays one instruction (register base, `%lo()`, `%gp_rel()`)
+  is followed by a `nop`; a bare-symbol load, which the assembler expands to
+  `lui` + load, still gets none, and an existing load-delay `nop` is not
+  doubled (MediEvil `func_80041B5C`).
+
+The patch adds five unit tests (`TestMfloMedievilPatch` in
+`tests/test_mflo.py`), so its build expects 156 tests instead of upstream's
+151. Its command is still `bin/maspsx`, and it runs on MicroPython like
+`maspsx`. `ps1-decomp-tools` and the dev shells keep plain `maspsx`.
 
 ### maspsx runs on MicroPython
 
